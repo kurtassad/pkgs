@@ -1,0 +1,37 @@
+name: rtl8852cu-driver
+variant: alpine
+shell: /bin/bash
+dependencies:
+  - stage: base
+  - stage: kernel-build
+steps:
+  - sources:
+      - url: https://github.com/morrownr/rtl8852cu-20240510/archive/c01bd409ddce75822cd9127ac1a97ba4fd31a9d8.tar.gz
+        destination: rtl8852cu.tar.gz
+        sha256: "3f56b181d558da09f2ec05700e1371a46fcd68fbaabb5a1489224955747f7f9b"
+        sha512: "0de5b8c26a282d90a871287158d227a42b6e2c70f8c08683931d8c81790075cc0a0093ad4368b62cdcce54d5a51e3150003dd73c1bbe68ab94f9b3e1d1b8882f"
+    env:
+      ARCH: {{ if eq .ARCH "aarch64"}}arm64{{ else if eq .ARCH "x86_64" }}x86_64{{ else }}unsupported{{ end }}
+    prepare:
+      - |
+        tar xf rtl8852cu.tar.gz --strip-components=1
+    build:
+      - |
+        make -C /src M="$(pwd)" modules
+    install:
+      - |
+        mkdir -p /rootfs/usr/lib/modules/$(cat /src/include/config/kernel.release)/
+        cp /src/modules.order /rootfs/usr/lib/modules/$(cat /src/include/config/kernel.release)/
+        cp /src/modules.builtin /rootfs/usr/lib/modules/$(cat /src/include/config/kernel.release)/
+        cp /src/modules.builtin.modinfo /rootfs/usr/lib/modules/$(cat /src/include/config/kernel.release)/
+        make -C /src M=$(pwd) modules_install INSTALL_MOD_PATH=/rootfs/usr INSTALL_MOD_DIR=extras INSTALL_MOD_STRIP=1
+    test:
+      - |
+        ls /rootfs/usr/lib/modules/6.17.5-talos/
+        find /rootfs/usr/lib/modules -name '*.ko' -exec grep -FL '~Module signature appended~' {} \+
+      - |
+        fhs-validator /rootfs
+finalize:
+  - from: /rootfs
+    to: /
+
