@@ -75,6 +75,7 @@ spec:
     - nvidia-open-gpu-kernel-modules-lts-pkg
     - nvidia-open-gpu-kernel-modules-production-pkg
     - px-fuse-pkg
+    - rtl8852cu-driver
     - tenstorrent-pkg
     - xdma-driver-pkg
     - zfs-pkg

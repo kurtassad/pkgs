@@ -119,6 +119,7 @@ TARGETS += mellanox-mstflint-pkg
 TARGETS += nvidia-open-gpu-kernel-modules-lts-pkg
 TARGETS += nvidia-open-gpu-kernel-modules-production-pkg
 TARGETS += px-fuse-pkg
+TARGETS += rtl8852cu-driver
 TARGETS += tenstorrent-pkg
 TARGETS += xdma-driver-pkg
 TARGETS += zfs-pkg

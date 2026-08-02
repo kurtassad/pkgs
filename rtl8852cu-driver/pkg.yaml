@@ -1,0 +1,40 @@
+name: rtl8852cu-driver
+variant: alpine
+shell: /bin/bash
+dependencies:
+  - stage: base
+  - stage: kernel-build
+  - image: "{{ .LLVM_IMAGE }}:{{ .TOOLS_REV }}"
+steps:
+  - sources:
+      - url: https://github.com/morrownr/rtl8852cu-20251113/archive/1530c38e5b1be6d1e96a31cf4f3602a9c23f2465.tar.gz
+        destination: rtl8852cu.tar.gz
+        sha256: "b2b21b4be430f319e5af193b7a1fd562fad3c84f0371ce49cae6dd6c0cbbff2e"
+        sha512: "e8dd08630fafb4ea8c5216404730d18fee4c9d6ca31e64d67a9c23f1a418bfdcca376ffb1b7e8a9e400067abeb05098037e9cd2e311f1123cf9e7c5cc1b0bffc"
+    env:
+      ARCH: {{ if eq .ARCH "aarch64"}}arm64{{ else if eq .ARCH "x86_64" }}x86_64{{ else }}unsupported{{ end }}
+      LLVM: 1
+    prepare:
+      - |
+        tar xf rtl8852cu.tar.gz --strip-components=1
+    build:
+      - |
+        make -j $(nproc) KSRC=/src USER_EXTRA_CFLAGS="-Wno-unknown-warning-option" -C /src M="$(pwd)" modules CONFIG_RTL8852CU=m
+    install:
+      - |
+        mkdir -p /rootfs/usr/lib/modules/$(cat /src/include/config/kernel.release)/
+        cp /src/modules.order /rootfs/usr/lib/modules/$(cat /src/include/config/kernel.release)/
+        cp /src/modules.builtin /rootfs/usr/lib/modules/$(cat /src/include/config/kernel.release)/
+        cp /src/modules.builtin.modinfo /rootfs/usr/lib/modules/$(cat /src/include/config/kernel.release)/
+
+        make KSRC=/src -C /src M=$(pwd) modules_install INSTALL_MOD_PATH=/rootfs/usr INSTALL_MOD_DIR=extras INSTALL_MOD_STRIP=1
+    test:
+      - |
+        # https://www.kernel.org/doc/html/v4.15/admin-guide/module-signing.html#signed-modules-and-stripping
+        find /rootfs/usr/lib/modules -name '*.ko' -exec grep -FL '~Module signature appended~' {} \+
+      - |
+        fhs-validator /rootfs
+finalize:
+  - from: /rootfs
+    to: /
+
